@@ -3,16 +3,34 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <signal.h>
+#include <string.h>
 
 
 const int MAXLINE = 1024;
 
-std::string transFileSrv::ErrorMsg(std::initializer_list<std::string>& li)
+std::string transFileSrv::ErrorMsg(std::initializer_list<std::string> li)
 {
     std::string strTemp;
-    for (std::string& str : li)
+    for (auto& str : li)
         strTemp += str;
     return strTemp;
+}
+
+bool transFileSrv::registerSignal()
+{
+    struct sigaction objSignal;
+    objSignal.sa_flags = 0;
+    sigemptyset(&objSignal.sa_mask);
+
+    objSignal.sa_handler = SIG_IGN;
+
+    if (sigaction(SIGPIPE, &objSignal, NULL) < 0)
+    {
+        m_strErroMsg = ErrorMsg({"sigaction() error", strerror(errno)});
+        return false;
+    }
+    return true;
 }
 
 bool transFileSrv::FillSockInfo(struct sockaddr_in& objSockInfo)
@@ -26,7 +44,7 @@ bool transFileSrv::FillSockInfo(struct sockaddr_in& objSockInfo)
     }
 
     m_nListenFd = socket(AF_INET, SOCK_STREAM, 0);
-    if (m_nSockfd < 0)
+    if (m_nListenFd < 0)
     {
         m_strErroMsg = ErrorMsg({"socket()", strerror(errno)});
         clear();
@@ -99,7 +117,7 @@ bool transFileSrv::StartWork()
             }
             //mkdir
             char strDir[128];
-            if (inet_ntop(AF_INET, sockInfoCli.sin_addr, strDir, nlen) < 0)
+            if (inet_ntop(AF_INET, &sockInfoCli.sin_addr, strDir, nlen) < 0)
             {
                 m_strErroMsg = ErrorMsg({"inet_ntop()", strerror(errno)});
                 continue;
@@ -122,7 +140,7 @@ bool transFileSrv::StartWork()
             --nready;
         }
 
-        while(nread > 0)
+        while(nready > 0)
         {
             char buff[MAXLINE];
             std::vector<int>::iterator iter;
@@ -146,7 +164,7 @@ bool transFileSrv::StartWork()
                             std::vector<int>::const_iterator c_iter;
                             c_iter = std::max_element(m_vectClients.begin(), m_vectClients.end());
                             maxi = *c_iter;
-                            maxfd = maxi > maxfd ? maxfi : maxfd;
+                            maxfd = maxi > maxfd ? maxi : maxfd;
                         }
                     }
                     if (nread == 0) // client call shutdown, nothing todo because we will send data
@@ -162,7 +180,7 @@ bool transFileSrv::StartWork()
                         std::vector<int>::const_iterator c_iter;
                         c_iter = std::max_element(m_vectClients.begin(), m_vectClients.end());
                         maxi = *c_iter;
-                        maxfd = maxi > maxfd ? maxfi : maxfd;
+                        maxfd = maxi > maxfd ? maxi : maxfd;
                     }
                     --nready;
                 }

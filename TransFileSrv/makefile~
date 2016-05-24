@@ -1,5 +1,5 @@
 CXX = g++
-CXXFLAGS = -Wall -g -std=c++11
+CXXFLAGS = -Wall -g
 COMPILER = $(CXX) $(CXXFLAGS) -c -o
 LINK = $(CXX) $(CXXFLAGS) -o
 

@@ -1,4 +1,4 @@
-DIRS = TransFileCli TransFileSrv
+DIRS = transFileCli transFileSrv
 
 all:
 	@for subdir in $(DIRS); \

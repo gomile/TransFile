@@ -1,6 +1,7 @@
 #ifndef TRANSFILESRV_H
 #define TRANSFILESRV_H
 
+#include <unistd.h>
 #include <iostream>
 #include <vector>
 #include <arpa/inet.h>
@@ -19,11 +20,18 @@ public:
     bool InitNetWork();
     bool StartWork();
 
+    std::string& GetErrorMsg()
+    {
+        return m_strErroMsg;
+    }
+
 private:
-    std::string ErrorMsg(std::initializer_list<std::string>& li);
+    std::string ErrorMsg(std::initializer_list<std::string> li);
 
     bool FillSockInfo(struct sockaddr_in& objSockInfo);
     bool BindAndListen(struct sockaddr_in& objSockInfo);
+
+    bool registerSignal();
 
     void clear()
     {

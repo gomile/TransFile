@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/select.h>
+#include <signal.h>
 
 const int MAXLINE = 1024;
 
@@ -14,17 +15,39 @@ inline int max(int a, int b)
     return a > b ? a : b;
 }
 
+void catchSigPipe(int signo)
+{
+    std::cout << "server down";
+    exit(1);
+}
+
 TransFileCli::TransFileCli()
 {
 
 }
 
-std::string TransFileCli::ErrorMsg(std::initializer_list<std::string>& li)
+std::string TransFileCli::ErrorMsg(std::initializer_list<std::string> li)
 {
     std::string strTemp;
-    for (std::string& str : li)
+    for (auto& str : li)
         strTemp += str;
     return strTemp;
+}
+
+bool TransFileCli::registerSignal()
+{
+    struct sigaction objSignal;
+    objSignal.sa_flags = 0;
+    sigemptyset(&objSignal.sa_mask);
+    //func.sig_Classhandler = &catchSigPipe;
+    objSignal.sa_handler = catchSigPipe;
+
+    if (sigaction(SIGPIPE, &objSignal, NULL) < 0)
+    {
+        m_strErroMsg = ErrorMsg({"sigaction() error", strerror(errno)});
+        return false;
+    }
+    return true;
 }
 
 bool TransFileCli::FillSockInfo(struct sockaddr_in& objSockInfo)
@@ -54,6 +77,7 @@ bool TransFileCli::Connect(struct sockaddr_in& objSockInfo)
         m_strErroMsg = ErrorMsg({"connect() error", strerror(errno)});
         return false;
     }
+    return true;
 }
 
 bool TransFileCli::InitNetWork()
